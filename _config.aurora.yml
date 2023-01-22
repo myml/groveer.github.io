@@ -104,7 +104,7 @@ gitalk:
   enable: true
   autoExpand: true
   clientID: '6b9171aaf165221d3e98'
-  clientSecret: '0ac9a3b80136657b9d65d250d66f613736ac2338'
+  clientSecret: '3d1dc512ba28018393fc952b2bbe6170277054b1'
   repo: 'groveer.github.io'
   owner: 'groveer'
   admin: ['groveer']
