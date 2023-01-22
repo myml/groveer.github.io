@@ -22,9 +22,6 @@
     "hexo-renderer-marked": "^6.0.0",
     "hexo-renderer-stylus": "^2.1.0",
     "hexo-server": "^3.0.0",
-    "hexo-theme-aurora": "^1.5.5",
-    "md5": "^2.3.0",
-    "request": "^2.88.2",
-    "xml-parser": "^1.2.1"
+    "hexo-theme-aurora": "^1.5.5"
   }
 }

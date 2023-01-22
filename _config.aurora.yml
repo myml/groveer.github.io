@@ -101,14 +101,14 @@ site_meta:
 
 # For local development only!
 gitalk:
-  enable: true
+  enable: false
   autoExpand: true
   clientID: '6b9171aaf165221d3e98'
   clientSecret: '3d1dc512ba28018393fc952b2bbe6170277054b1'
   repo: 'groveer.github.io'
   owner: 'groveer'
   admin: ['groveer']
-  id: uid
+  id: pathname
   language: zh-CN
   distractionFreeMode: true
   recentComment: true
@@ -117,17 +117,17 @@ gitalk:
 # Valine comment plugin (recommended!)
 # see https://valine.js.org/quickstart.html
 valine:
-  enable: false
-  app_id:
-  app_key:
-  avatar: ''
-  placeholder: Leave your thoughts behind~
+  enable: true
+  app_id: haIm5FeUe01oJTIEMfDVhedg-gzGzoHsz
+  app_key: kDqlmQdihqGffFnTesNcm86x
+  avatar: 'https://valine.js.org/avatar.html'
+  placeholder: '客官，说点什么吧'
   visitor: true
-  lang: en
+  lang: zh-CN
   avatarForce: false
   meta: ['nick', 'mail']
   requiredFields: []
-  admin: 'TriDiamond'
+  admin: 'groveer'
   recentComment: true
 
 # Enable Busuanzi statistic plugin

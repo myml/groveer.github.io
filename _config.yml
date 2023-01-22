@@ -8,7 +8,7 @@ subtitle: ''
 description: ''
 keywords:
 author:
-language: cn
+language: zh-CN
 timezone: 'Asia/Shanghai'
 
 # URL
@@ -106,7 +106,3 @@ deploy:
 
 sitemap:
   path: sitemap.xml
-  template: ./sitemap_template.xml
-  rel: false
-  tag: true
-  category: false
