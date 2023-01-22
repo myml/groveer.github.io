@@ -47,6 +47,12 @@ menu:
   About: true
   Tags: true
   Archives: true
+  Friends:
+    name: '友链'
+    children:
+      friend1:
+        name: '竹子'
+        path: 'https://blog.justforlxz.com/'
 
 #! ---------------------------------------------------------------
 #! Theme Config
