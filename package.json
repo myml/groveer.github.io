@@ -25,7 +25,6 @@
     "hexo-theme-aurora": "^1.5.5",
     "md5": "^2.3.0",
     "request": "^2.88.2",
-    "xml-parser": "^1.2.1",
-    "yamljs": "^0.3.0"
+    "xml-parser": "^1.2.1"
   }
 }
