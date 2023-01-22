@@ -109,7 +109,7 @@ gitalk:
   owner: 'groveer'
   admin: ['groveer']
   id: uid
-  language: cn
+  language: zh-CN
   distractionFreeMode: true
   recentComment: true
   proxy: ''
