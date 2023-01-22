@@ -11,7 +11,7 @@ cover: https://pic.3gbizhi.com/2020/0817/20200817121447528.png
 feature: true
 ---
 
-为了与 Linux 拥有一致的开发体验，特在此记录：在 Windows 上使用 Neovim+CMake+VS build 搭建 C/C++ 环境。
+为了与 Linux 拥有一致的开发体验，特在此记录：在 Windows 上使用 Neovim + CMake + MSBuild 搭建 C/C++ 环境。
 
 首先上效果：
 ![效果1](/rc/img/windows_nvim/nvim_1.gif)
