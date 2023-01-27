@@ -204,3 +204,21 @@ public:
     }
 }
 ```
+
+## 查看插件是否生效
+
+将 .so 和 .json 文件放到指定位置后，执行命令：
+
+:::details system
+```bash
+sudo systemctl restart deepin-service-manager@system.service
+```
+:::
+
+:::details session
+```bash
+systemctl --user restart deepin-service-manager@user.service
+```
+:::
+
+重启服务后，即可通过 DBus 命令行或 d-feet 工具查看 json 中的 DBus 服务已被启动，服务名即 json 中的`name`字段配置的内容。
