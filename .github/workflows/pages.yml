@@ -23,6 +23,10 @@ jobs:
             ${{ runner.OS }}-npm-cache
       - name: Install Dependencies
         run: npm install
+      - name: Install Patch
+        run: |
+          cp category.js node_modules/hexo-theme-aurora/scripts/lib/generators/
+          cp tag.js node_modules/hexo-theme-aurora/scripts/lib/generators/
       - name: Build
         run: npm run build
       - name: Deploy
