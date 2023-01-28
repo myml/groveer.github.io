@@ -3,11 +3,11 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
+title: 易上止正的博客
 subtitle: ''
-description: ''
-keywords:
-author:
+description: '易上止正的博客'
+keywords: 'Linux, Qt, C/C++'
+author: '易上止正'
 language: zh-CN
 timezone: 'Asia/Shanghai'
 
@@ -113,3 +113,4 @@ baidusitemap:
   path: baidusitemap.xml
 sitemap:
   path: sitemap.xml
+  template: ./sitemap_template.xml
