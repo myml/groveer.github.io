@@ -222,3 +222,7 @@ systemctl --user restart deepin-service-manager@user.service
 :::
 
 重启服务后，即可通过 DBus 命令行或 d-feet 工具查看 json 中的 DBus 服务已被启动，服务名即 json 中的`name`字段配置的内容。
+
+在`org.deepin.service.manager`服务中：
+- `/manager`路径下可查看当前服务中已启动的所有分组进程
+- `/group/<group name>`路径下可查看当前分组中加载的所有插件
