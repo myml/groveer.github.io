@@ -17,9 +17,9 @@ feature: false
 ### 核心功能
 
 - 插件服务，把服务以一个插件方式加载运行
-- dbus接口私有化（接口隐藏、接口白名单）
-- dbus插件服务的按需启动
-- 独立应用的dbus接口私有化sdk
+- dbus 接口私有化（接口隐藏、接口白名单）
+- dbus 插件服务的按需启动
+- 独立应用的 dbus 接口私有化 sdk
 
 ### 服务加载插件流程
 
@@ -36,85 +36,109 @@ feature: false
 
 ```json
 {
-    "name": "org.deepin.service.demo", // dbus name，框架中会注册该name
-    "libPath": "demo.so" // 插件so名称
-    "group": "core" // 可选，插件按进程分组，默认分组为 core
+  "name": "org.deepin.service.demo", // 必选，dbus name，框架中会注册该name
+  "libPath": "demo.so", // 必选，插件so名称
+  "group": "core", // 可选，插件按进程分组，默认分组为 core
+  "pluginType": "qt" // 可选，插件类型，暂时只有 qt 和 sd 两种，默认为 qt
 }
 ```
 
 配置文件安装路径规则：
 
-:::details qdbus
+:::details qdbus/sdbus
 **system**:
-```shell
-/usr/share/deepin-service-manager/system/qt-service/demo.json
-```
-**session**:
-```shell
-/usr/share/deepin-service-manager/user/qt-service/demo.json
-```
-:::
 
-:::details sdbus
-**system**:
 ```shell
-/usr/share/deepin-service-manager/system/sd-service/demo.json
+/usr/share/deepin-service-manager/system/demo.json
 ```
+
 **session**:
+
 ```shell
-/usr/share/deepin-service-manager/user/sd-service/demo.json
+/usr/share/deepin-service-manager/user/demo.json
 ```
+
 :::
 
 :::details sdk
 目前只实现了 Qt 的 SDK 实现方式：
 
 ```shell
-/usr/share/deepin-service-manager/other/qt-service/demo.json
+/usr/share/deepin-service-manager/other/demo.json
 ```
-> 该功能暂未开放
+
 :::
 
 #### 实现入口函数
 
 :::details qdbus
+
 ```cpp
-#include "service.h" // 实现的dbusobject，基本支持qdbus原规则
 #include <QDBusConnection>
+#include "service.h" // 实现的dbusobject，基本支持qdbus原规则
+
+static Service *service = nullptr;
 
 // name:dbus name,配置文件中的"name"，
 // data:自定义数据
-extern "C" int DSMRegisterObject(const char *name, void *data)
+extern "C" int DSMRegister(const char *name, void *data)
 {
-    QDBusConnection::RegisterOptions opts = QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals | QDBusConnection::ExportAllProperties;
+    (void)data;
+    service = new Service();
+    QDBusConnection::RegisterOptions opts =
+        QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals |
+        QDBusConnection::ExportAllProperties;
 
-    // 入口函数，使用name的connectToBus
-    QDBusConnection::connectToBus(QDBusConnection::SessionBus, QString(name)).registerObject("/org/deepin/services/demo1", new Service(), opts);
+    QDBusConnection::connectToBus(QDBusConnection::SessionBus, QString(name))
+        .registerObject("/org/deepin/services/demo1", service, opts);
+    return 0;
+}
+
+// 插件卸载时，若需要释放资源请在此实现
+extern "C" int DSMUnRegister(const char *name, void *data)
+{
+    (void)name;
+    (void)data;
+    service->deleteLater();
+    service = nullptr;
     return 0;
 }
 ```
+
 :::
 
 :::details sdbus
+
 ```c
 #include "service.h"
-extern "C" int DSMRegisterObject(const char *name, void *data)
+
+extern "C" int DSMRegister(const char *name, void *data)
 {
+    (void)name;
     if (!data) {
         return -1;
     }
     sd_bus *bus = (sd_bus *)data;
     sd_bus_slot *slot = NULL;
-    if (sd_bus_add_object_vtable(bus, &slot,
-                                    "/org/deepin/services/sdbus/demo1",
-                                    "org.deepin.services.sdbus.demo1",
-                                    calculator_vtable,
-                                    NULL) < 0) {
+    if (sd_bus_add_object_vtable(bus,
+                                 &slot,
+                                 "/org/deepin/service/sdbus/demo1",
+                                 "org.deepin.service.sdbus.demo1",
+                                 calculator_vtable,
+                                 NULL) < 0) {
         return -1;
     }
     return 0;
 }
+
+extern "C" int DSMUnRegister(const char *name, void *data)
+{
+    (void)name;
+    (void)data;
+    return 0;
+}
 ```
+
 :::
 
 **实现的 so 安装路径为 `/usr/lib/deepin-service-manager/`**
@@ -127,69 +151,69 @@ extern "C" int DSMRegisterObject(const char *name, void *data)
 
 ```json
 {
+  "name": "org.deepin.services.demo",
+  "libPath": "demo.so",
+  "group": "core", // 可选，默认core。
+  "pluginType": "qt", // 可选
+  "policyVersion": "1.0", // 可选，配置文件版本，预留配置，无实际用途
+  "policyStartType": "Resident", // 启动方式，Resident（常驻）、OnDemand（按需启动）。可选，默认Resident。
 
-    "name": "org.deepin.services.demo",
-    "libPath": "demo.so",
-    "group": "core", // 可选，默认core。
-    "policyVersion": "1.0", // 可选，配置文件版本，预留配置，无实际用途
-    "policyStartType": "Resident", // 启动方式，Resident（常驻）、OnDemand（按需启动）。可选，默认Resident。
-
-    "whitelists": [ // 白名单规则，给下面 policy 做权限规则配置
+  "whitelists": [
+    // 白名单规则，给下面 policy 做权限规则配置
+    {
+      "name": "w1",
+      "process": ["/usr/bin/aaa", "/usr/bin/bbb"]
+    },
+    {
+      "name": "w2",
+      "process": ["/usr/bin/aaa", "/usr/bin/ccc", "/usr/bin/python3"]
+    },
+    {
+      "name": "all",
+      "description": "No configuration is required, which means no restrictions"
+    }
+  ],
+  "policy": [
+    {
+      "path": "/qdbus/demo1",
+      "pathhide": true, // 隐藏该path，但可调用。可选，默认false
+      "permission": true, // 开启权限。可选，默认false。注意该功能在 V20 上不可用，V23可正常使用，原因是Qt的DBus实现有问题。
+      "subpath": true, // 子path也应用该权限（针对动态生成的子路径）。可选，默认false
+      "whitelist": "w1", // 开启权限后，调用上方的白名单规则
+      // path->interfaces->methods，权限层级，未指定的下级继承上级的权限配置，指定了的覆盖上级配置
+      "interfaces": [
         {
-            "name": "w1",
-            "process": ["/usr/bin/aaa", "/usr/bin/bbb"]
-        },
-        {
-            "name": "w2",
-            "process": ["/usr/bin/aaa", "/usr/bin/ccc", "/usr/bin/python3"]
-        },
-        {
-            "name": "all",
-            "description": "No configuration is required, which means no restrictions"
+          "interface": "org.deepin.service.demo",
+          "whitelist": "w1",
+          // "permission":true, // 不填则继承上级PATH的配置
+          "methods": [
+            {
+              "method": "Multiply", // 具体方法的权限管控
+              "whitelist": "w2"
+            }
+          ],
+          "properties": [
+            {
+              "property": "Age",
+              "permission": false
+            }
+          ]
         }
-    ],
-    "policy": [
-        {
-            "path": "/qdbus/demo1",
-            "pathhide": true, // 隐藏该path，但可调用。可选，默认false
-            "permission": true, // 开启权限。可选，默认false。注意该功能在 V20 上不可用，V23可正常使用，原因是Qt的DBus实现有问题。
-            "subpath": true, // 子path也应用该权限（针对动态生成的子路径）。可选，默认false
-            "whitelist": "w1", // 开启权限后，调用上方的白名单规则
-            // path->interfaces->methods，权限层级，未指定的下级继承上级的权限配置，指定了的覆盖上级配置
-            "interfaces": [
-                {
-                    "interface": "org.deepin.service.demo",
-                    "whitelist": "w1",
-                    // "permission":true, // 不填则继承上级PATH的配置
-                    "methods": [
-                        {
-                            "method": "Multiply", // 具体方法的权限管控
-                            "whitelist": "w2"
-                        }
-                    ],
-                    "properties": [
-                        {
-                            "property": "Age",
-                            "permission": false
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "path": "/qdbus/demo2", // 此配置只隐藏路径, 不做权限管控，适合 V20 使用
-            "pathhide": true
-        }
-    ]
+      ]
+    },
+    {
+      "path": "/qdbus/demo2", // 此配置只隐藏路径, 不做权限管控，适合 V20 使用
+      "pathhide": true
+    }
+  ]
 }
 ```
+
 ### 独立应用开发
 
-> 此功能暂未开放
-
 1. 提供配置文件，配置规则同上。
-2. 加载libqdbus-service.so
-3. dbus object继承QDBusService，且调用QDBusService::InitPolicy。
+2. 加载 libqdbus-service.so
+3. dbus object 继承 QDBusService，且调用 QDBusService::InitPolicy。
 
 ```c++
 #include "qdbusservice.h"
@@ -200,7 +224,7 @@ class Service : public QDBusService,
     Q_OBJECT
 public:
     explicit Service(QObject *parent = 0) {
-        QDBusService::InitPolicy(QDBusConnection::SessionBus, "other/qt-service/demo.json");
+        QDBusService::InitPolicy(QDBusConnection::SessionBus, "other/demo.json");
     }
 }
 ```
@@ -210,19 +234,32 @@ public:
 将 .so 和 .json 文件放到指定位置后，执行命令：
 
 :::details system
+
 ```bash
 sudo systemctl restart deepin-service-manager@system.service
 ```
+
 :::
 
 :::details session
+
 ```bash
 systemctl --user restart deepin-service-manager@user.service
 ```
+
 :::
 
 重启服务后，即可通过 DBus 命令行或 d-feet 工具查看 json 中的 DBus 服务已被启动，服务名即 json 中的`name`字段配置的内容。
 
 在`org.deepin.service.manager`服务中：
+
 - `/manager`路径下可查看当前服务中已启动的所有分组进程
 - `/group/<group name>`路径下可查看当前分组中加载的所有插件
+
+## 更新日志
+
+- 2023/02/06:
+  - 重命名入口函数 DSMRegisterObject->DSMRegister;
+  - 新增卸载函数，用于释放内存：DSMUnRegister;
+  - json 配置路径更新：去掉了路径中的`qt-service`和`sd-service`，转而使用 json 文件中的`pluginType`来匹配。
+
