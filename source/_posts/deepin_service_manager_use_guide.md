@@ -36,12 +36,18 @@ feature: false
 
 ```json
 {
-  "name": "org.deepin.service.demo", // 必选，dbus name，框架中会注册该name
-  "libPath": "demo.so", // 必选，插件so名称
-  "group": "core", // 可选，插件按进程分组，默认分组为 core
-  "pluginType": "qt" // 可选，插件类型，暂时只有 qt 和 sd 两种，默认为 qt
+  "name": "org.deepin.service.demo", // [必选]dbus name，框架中会注册该name
+  "libPath": "demo.so", // [必选]插件so名称
+  "group": "core", // [可选]插件按进程分组，默认分组为 core
+  "pluginType": "qt", // [可选]插件类型，暂时只有 qt 和 sd 两种，默认为 qt
+  "policyVersion": "1.0", // [可选]配置文件版本，预留配置，无实际用途
+  "policyStartType": "Resident", // [可选]启动方式，Resident（常驻）、OnDemand（按需启动）。默认Resident。
+  "dependencies": [], // [可选]若依赖其他服务，可将服务名填在此处，在依赖启动之前不会启动此服务
+  "startDelay": 0 // [可选]若需要延时启动，可将延时时间填在此处，单位为秒
 }
 ```
+
+>配置文件中必选字段为必须要填写字段，否则插件无法正常启动，可选字段可视情况选择填写即可！
 
 配置文件安装路径规则：
 
@@ -157,9 +163,11 @@ extern "C" int DSMUnRegister(const char *name, void *data)
   "pluginType": "qt", // 可选
   "policyVersion": "1.0", // 可选，配置文件版本，预留配置，无实际用途
   "policyStartType": "Resident", // 启动方式，Resident（常驻）、OnDemand（按需启动）。可选，默认Resident。
+  "dependencies": [], // [可选]若依赖其他服务，可将服务名填在此处，在依赖启动之前不会启动此服务
+  "startDelay": 0, // [可选]若需要延时启动，可将延时时间填在此处，单位为秒
 
   "whitelists": [
-    // 白名单规则，给下面 policy 做权限规则配置
+    // 白名单规则，给下面 policy 做权限规则配置，单独存在无意义
     {
       "name": "w1",
       "process": ["/usr/bin/aaa", "/usr/bin/bbb"]
@@ -174,6 +182,7 @@ extern "C" int DSMUnRegister(const char *name, void *data)
     }
   ],
   "policy": [
+    // 若需要权限管控，则应按此配置进行
     {
       "path": "/qdbus/demo1",
       "pathhide": true, // 隐藏该path，但可调用。可选，默认false
@@ -258,6 +267,9 @@ systemctl --user restart deepin-service-manager@user.service
 
 ## 更新日志
 
+- 2023/02/08:
+  - 新增依赖配置，配置依赖服务后，在依赖未启动时不会启动本服务
+  - 新增延时启动，可配置本服务延时启动
 - 2023/02/06:
   - 重命名入口函数 DSMRegisterObject->DSMRegister;
   - 新增卸载函数，用于释放内存：DSMUnRegister;
