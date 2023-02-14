@@ -64,3 +64,23 @@ User git
 ```
 
 至此，在 Windows 环境中就可以愉快使用 git 和访问 github 了。
+
+## git 配置代理
+
+普通的 https 代理直接使用 shell 中配好的代理即可，这里主要展示使用 ssh 协议时代理设置。
+
+在 Archlinux 中还需要安装一个包才能正常使用：
+```bash
+sudo pacman -S openbsd-netcat
+```
+
+然后在配置文件`~/.ssh/config`中添加以下内容：
+```bash
+Host github.com
+    Hostname ssh.github.com
+    User git
+    Port 443
+    ProxyCommand nc -v -x 127.0.0.1:7890 %h %p
+```
+
+> 注意代理地址需改为自己的代理地址！
