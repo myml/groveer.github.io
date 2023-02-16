@@ -23,14 +23,16 @@ feature: false
 
 ### 服务加载插件流程
 
-![加载插件流程](/rc/img/deepin_service_manager_use.drawio.svg)
+![常驻插件加载流程](/rc/img/deepin-service-manager-resident.svg)
 
-1. 如图所示，服务框架（以下简称 service）由 systemd 服务拉起来；
+1. 如图所示，deepin-service-manager 由 systemd 服务拉起来；
 2. service 起来后读取所有的 json 配置文件，根据配置文件进行分组；
-3. 按照分好的组启动子进程，并传入组名；
+3. 按照分好的组通过 systemd 启动子进程实例，并传入组名；
 4. 子进程启动，按照传入的组名进行过滤，注册该组的服务，并且根据配置文件（Resident、OnDemand）决定是否立即加载 so 插件。
 
-### 无接口私有化功能的插件开发
+![权限管控流程](/rc/img/deepin-service-manager-policy.svg)
+
+### 普通插件开发
 
 #### 提供配置文件
 
@@ -43,7 +45,8 @@ feature: false
   "policyVersion": "1.0", // [可选]配置文件版本，预留配置，无实际用途
   "policyStartType": "Resident", // [可选]启动方式，Resident（常驻）、OnDemand（按需启动）。默认Resident。
   "dependencies": [], // [可选]若依赖其他服务，可将服务名填在此处，在依赖启动之前不会启动此服务
-  "startDelay": 0 // [可选]若需要延时启动，可将延时时间填在此处，单位为秒
+  "startDelay": 0, // [可选]若需要延时启动，可将延时时间填在此处，单位为秒
+  "idleTime": 10 // [可选]若服务是按需启动，则可以设置闲时时间，超时则会卸载服务
 }
 ```
 
@@ -51,107 +54,100 @@ feature: false
 
 配置文件安装路径规则：
 
-:::details qdbus/sdbus
-**system**:
+1. qdbus/sdbus
 
-```shell
-/usr/share/deepin-service-manager/system/demo.json
-```
+    **system**:
 
-**session**:
+    ```shell
+    /usr/share/deepin-service-manager/system/demo.json
+    ```
 
-```shell
-/usr/share/deepin-service-manager/user/demo.json
-```
+    **session**:
 
-:::
+    ```shell
+    /usr/share/deepin-service-manager/user/demo.json
+    ```
+2. sdk
 
-:::details sdk
-目前只实现了 Qt 的 SDK 实现方式：
+    目前只实现了 Qt 的 SDK 实现方式：
 
-```shell
-/usr/share/deepin-service-manager/other/demo.json
-```
-
-:::
+    ```shell
+    /usr/share/deepin-service-manager/other/demo.json
+    ```
 
 #### 实现入口函数
 
-:::details qdbus
+1. qdbus
 
-```cpp
-#include <QDBusConnection>
-#include "service.h" // 实现的dbusobject，基本支持qdbus原规则
+    ```cpp
+    #include <QDBusConnection>
+    #include "service.h" // 实现的dbusobject，基本支持qdbus原规则
 
-static Service *service = nullptr;
+    static Service *service = nullptr;
 
-// name:dbus name,配置文件中的"name"，
-// data:自定义数据
-extern "C" int DSMRegister(const char *name, void *data)
-{
-    (void)data;
-    service = new Service();
-    QDBusConnection::RegisterOptions opts =
-        QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals |
-        QDBusConnection::ExportAllProperties;
+    // name:dbus name,配置文件中的"name"，
+    // data:自定义数据
+    extern "C" int DSMRegister(const char *name, void *data)
+    {
+        (void)data;
+        service = new Service();
+        QDBusConnection::RegisterOptions opts =
+            QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals |
+            QDBusConnection::ExportAllProperties;
 
-    QDBusConnection::connectToBus(QDBusConnection::SessionBus, QString(name))
-        .registerObject("/org/deepin/services/demo1", service, opts);
-    return 0;
-}
-
-// 插件卸载时，若需要释放资源请在此实现
-extern "C" int DSMUnRegister(const char *name, void *data)
-{
-    (void)name;
-    (void)data;
-    service->deleteLater();
-    service = nullptr;
-    return 0;
-}
-```
-
-:::
-
-:::details sdbus
-
-```c
-#include "service.h"
-
-extern "C" int DSMRegister(const char *name, void *data)
-{
-    (void)name;
-    if (!data) {
-        return -1;
+        QDBusConnection::connectToBus(QDBusConnection::SessionBus, QString(name))
+            .registerObject("/org/deepin/services/demo1", service, opts);
+        return 0;
     }
-    sd_bus *bus = (sd_bus *)data;
-    sd_bus_slot *slot = NULL;
-    if (sd_bus_add_object_vtable(bus,
-                                 &slot,
-                                 "/org/deepin/service/sdbus/demo1",
-                                 "org.deepin.service.sdbus.demo1",
-                                 calculator_vtable,
-                                 NULL) < 0) {
-        return -1;
+
+    // 插件卸载时，若需要释放资源请在此实现
+    extern "C" int DSMUnRegister(const char *name, void *data)
+    {
+        (void)name;
+        (void)data;
+        service->deleteLater();
+        service = nullptr;
+        return 0;
     }
-    return 0;
-}
+    ```
 
-extern "C" int DSMUnRegister(const char *name, void *data)
-{
-    (void)name;
-    (void)data;
-    return 0;
-}
-```
+2. sdbus
 
-:::
+    ```c
+    #include "service.h"
+
+    extern "C" int DSMRegister(const char *name, void *data)
+    {
+        (void)name;
+        if (!data) {
+            return -1;
+        }
+        sd_bus *bus = (sd_bus *)data;
+        sd_bus_slot *slot = NULL;
+        if (sd_bus_add_object_vtable(bus,
+                                    &slot,
+                                    "/org/deepin/service/sdbus/demo1",
+                                    "org.deepin.service.sdbus.demo1",
+                                    calculator_vtable,
+                                    NULL) < 0) {
+            return -1;
+        }
+        return 0;
+    }
+
+    extern "C" int DSMUnRegister(const char *name, void *data)
+    {
+        (void)name;
+        (void)data;
+        return 0;
+    }
+    ```
 
 **实现的 so 安装路径为 `/usr/lib/deepin-service-manager/`**
 
 > 注意：不同平台的 lib 路径可能不一样，推荐使用[GNUInstallDirs](https://cmake.org/cmake/help/latest/module/GNUInstallDirs.html?highlight=gnuinstalldirs)
 
-### 有接口私有化功能的插件开发
+### 带权限的插件开发
 
 配置文件增加权限规则即可。
 
@@ -242,21 +238,17 @@ public:
 
 将 .so 和 .json 文件放到指定位置后，执行命令：
 
-:::details system
+1. system
 
-```bash
-sudo systemctl restart deepin-service-manager@system.service
-```
+    ```bash
+    sudo systemctl restart deepin-service-manager@system.service
+    ```
 
-:::
+2. session
 
-:::details session
-
-```bash
-systemctl --user restart deepin-service-manager@user.service
-```
-
-:::
+    ```bash
+    systemctl --user restart deepin-service-manager@user.service
+    ```
 
 重启服务后，即可通过 DBus 命令行或 d-feet 工具查看 json 中的 DBus 服务已被启动，服务名即 json 中的`name`字段配置的内容。
 
@@ -264,6 +256,21 @@ systemctl --user restart deepin-service-manager@user.service
 
 - `/manager`路径下可查看当前服务中已启动的所有分组进程
 - `/group/<group name>`路径下可查看当前分组中加载的所有插件
+
+### 注意事项
+
+#### 服务分类
+
+在该服务中，分为主服务与分组服务，主服务启动，会根据配置文件，自动启动分组服务，举个例子：
+
+现有一个插件，json 配置中，`group`字段配置为`app`，那么该插件就属于`app`组，
+
+为方便调试，该服务有`Debug`版本和`Release`版本
+在 Debug 版本中，分组服务以子进程的方式进行启动，所以以该命令可重启所有服务：
+```bash
+sudo systemctl restart deepin-service-manager@system.service
+```
+在 Release 版本中，分组服务与主服务
 
 ## 更新日志
 
